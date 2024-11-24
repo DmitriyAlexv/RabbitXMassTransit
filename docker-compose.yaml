@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  dotnet_rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbit
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+  
+  dotnet:
+    image: dotnet
+    build:
+      context: "."
+      dockerfile: "WebAPI/Dockerfile"
+    environment:
+      RabbitMqConfig__Username: rabbit
+      RabbitMqConfig__Password: admin
+      RabbitMqConfig__Hostname: rabbitmq
+      ASPNETCORE_URLS: http://+:5256
+    ports:
+      - "5256:5256"
+      - "7268:7268"
+    depends_on:
+      - dotnet_rabbitmq
+  
+  dotnet-consumer:
+    image: dotnet-consumer
+    build:
+      context: "."
+      dockerfile: "WebAPI.Consumer/Dockerfile"
+    environment:
+      RabbitMqConfig__Username: rabbit
+      RabbitMqConfig__Password: admin
+      RabbitMqConfig__Hostname: rabbitmq
+    ports:
+      - "5237:5237"
+      - "7123:7123"
+    depends_on:
+      - dotnet_rabbitmq
